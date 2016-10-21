@@ -3,47 +3,49 @@ unit SyncDataUtils;
 interface
 
 uses
-  Windows, Classes, SysUtils;
+  Windows, Classes, SysUtils, PPContainers;
 
 type
 
   ESyncFieldValueNullException = class(Exception);
 
-  TSyncSourceFormat = (ssfFlatFile, ssfSQLServer, ssfOracle, ssfDB2);
-  TSyncDataType = (sdtString, sdtInteger, sdtDateTime, sdtDouble);
+  TSyncSourceFormat = (ssfFlatFile, ssfActiveDirectory, ssfSQLServer, ssfOracle, ssfDB2, ssfSybase, ssfMySQL);
+  TSyncFieldType = (sftString, sftBoolean, sftTinyInt, sftSmallInt, sftInteger, sftBigInt,
+                    sftDateTime, sftDate, sftTime, sftTinyDecimal, sftSmallDecimal, sftDecimal,
+                    sftBigDecimal);
 
   TSyncFieldDefs = class;
 
   TSyncFieldDef = class
   private
     FName: String;
-    FDataType: TSyncDataType;
+    FFieldType: TSyncFieldType;
     FFieldDefs: TSyncFieldDefs;
   public
     property Name: String read FName write FName;
-    property DataType: TSyncDataType read FDataType write FDataType;
+    property FieldType: TSyncFieldType read FFieldType write FFieldType;
 
     constructor Create(AFieldName: String; AFieldDefCollection: TSyncFieldDefs);
   end;
 
-  TSyncFieldDefs = class
+  TSyncFieldDefs = class(TCustomList)
+  private
+    function GetItem(I: Integer): TSyncFieldDef;
+  public
+    property Items[Index: Integer]: TSyncFieldDef read GetItem;
+
+    function Add(ASyncFieldDef: TSyncFieldDef): Integer;
+    function FieldDefByName(AFieldName: String): TSyncFieldDef;
   end;
 
   TSyncField = class
   private
     FFieldDef: TSyncFieldDef;
-    //FValue: array[..] of Char;
     FIsNull: Boolean;
-    FData: Pointer;
   public
     property FieldDef: TSyncFieldDef read FFieldDef;
 
     constructor Create(AFieldDef: TSyncFieldDef);
-    function AsInteger: Integer;
-    function AsString: String;
-    function AsDouble(Precision: Byte): Double;
-    function AsDateTime(Format: String): TDateTime;
-    procedure SetData(const Data);
   end;
 
 implementation
@@ -59,91 +61,50 @@ begin
   inherited Create;
 end;
 
-{ TSyncField }
+{ TSyncFieldDefs }
 
-function TSyncField.AsDateTime(Format: String): TDateTime;
+function TSyncFieldDefs.GetItem(I: Integer): TSyncFieldDef;
 begin
-
+  Result := TSyncFieldDef(FList.Items[I]);
 end;
 
-function TSyncField.AsDouble(Precision: Byte): Double;
+function TSyncFieldDefs.Add(ASyncFieldDef: TSyncFieldDef): Integer;
 begin
+  Result := -1;
 
-end;
-
-function TSyncField.AsInteger: Integer;
-begin
-
-end;
-
-function TSyncField.AsString: String;
-begin
-  if not Assigned(FData) then
-    Result :=
-
-  case FFieldDef.DataType of
-    sdtInteger:
-      begin
-        New(PInteger(Ptr));
-        Ptr := @Integer(Data);
-      end;
-    sdtDouble:
-      begin
-        New(PDouble(Ptr));
-        Ptr := @Double(Data);
-      end;
-    sdtString:
-      begin
-        New(PChar(Ptr));
-        Ptr := @String(Data);
-      end;
-    sdtDateTime:
-      begin
-        New(PDateTime(Ptr));
-        Ptr := @TDateTime(Data);
-      end;
+  if FList.IndexOf(ASyncFieldDef) = -1 then
+  begin
+    Result := FList.Add(ASyncFieldDef);
   end;
 end;
+
+function TSyncFieldDefs.FieldDefByName(AFieldName: String): TSyncFieldDef;
+var
+  I: Integer;
+  FieldDef: TSyncFieldDef;
+begin
+  Result := nil;
+
+  for I := 0 to FList.Count - 1 do
+  begin
+    FieldDef := TSyncFieldDef(FList.Items[I]);
+
+    if UpperCase(FieldDef.Name) = UpperCase(AFieldName) then
+    begin
+      Result := FieldDef;
+      Break;
+    end;
+  end;
+end;
+
+{ TSyncField }
 
 constructor TSyncField.Create(AFieldDef: TSyncFieldDef);
 begin
   if Assigned(AFieldDef) then
     FFieldDef := AFieldDef;
-  inherited Create;  
+  inherited Create;
 end;
-
-procedure TSyncField.SetData(const Data);
-var
-  Ptr: Pointer;
-begin
-  case FFieldDef.DataType of
-    sdtInteger:
-      begin
-        New(PInteger(Ptr));
-        Ptr := @Integer(Data);
-      end;
-    sdtDouble:
-      begin
-        New(PDouble(Ptr));
-        Ptr := @Double(Data);
-      end;
-    sdtString:
-      begin
-        New(PChar(Ptr));
-        Ptr := @String(Data);
-      end;
-    sdtDateTime:
-      begin
-        New(PDateTime(Ptr));
-        Ptr := @TDateTime(Data);
-      end;
-  end;
-
-  if Assigned(FData) then
-    Dispose(FData);
-  FData := Ptr;  
-end;
-
 
 end.
  

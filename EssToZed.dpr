@@ -4,7 +4,8 @@ uses
   Forms,
   Unit1 in 'Unit1.pas' {Form1},
   SyncSource in 'SyncSource.pas',
-  SyncDataUtils in 'SyncDataUtils.pas';
+  SyncDataUtils in 'SyncDataUtils.pas',
+  PPContainers in 'PPContainers.pas';
 
 {$R *.RES}
 
